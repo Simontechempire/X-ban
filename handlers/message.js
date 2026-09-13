@@ -1,37 +1,70 @@
 const config = require('../config');
-const ping = require('../commands/ping');
-const menu = require('../commands/menu');
-const owner = require('../commands/owner');
+
+const commands = {
+    ping: require('../commands/ping'),
+    menu: require('../commands/menu'),
+    owner: require('../commands/owner'),
+    moderator: require('../commands/moderator'),
+    group: require('../commands/group'),
+    admin: require('../commands/admin'),
+    fun: require('../commands/fun'),
+    games: require('../commands/game'),
+    game: require('../commands/game'),
+    media: require('../commands/media'),
+    tools: require('../commands/tools'),
+    utility: require('../commands/utility'),
+    download: require('../commands/downloader'),
+    downloader: require('../commands/downloader'),
+    sticker: require('../commands/sticker'),
+    ai: require('../commands/ai'),
+    info: require('../commands/info'),
+    viewonce: require('../commands/viewonce'),
+    vv: require('../commands/viewonce')
+};
 
 async function handleMessage(sock, { messages }) {
-  const m = messages[0];
-  if (!m.message || m.key.fromMe) return;
+    const m = messages[0];
 
-  const from = m.key.remoteJid;
-  const text =
-    m.message.conversation ||
-    m.message.extendedTextMessage?.text ||
-    '';
+    if (!m || !m.message || m.key.fromMe) return;
 
-  if (!text.startsWith(config.prefix)) return;
+    const from = m.key.remoteJid;
 
-  const args = text.slice(config.prefix.length).trim().split(/ +/);
-  const command = args.shift().toLowerCase();
+    const text =
+        m.message.conversation ||
+        m.message.extendedTextMessage?.text ||
+        m.message.imageMessage?.caption ||
+        m.message.videoMessage?.caption ||
+        '';
 
-  switch (command) {
-    case 'ping':
-      await ping(sock, m, from);
-      break;
-    case 'menu':
-    case 'help':
-      await menu(sock, m, from);
-      break;
-    case 'owner':
-      await owner(sock, m, from);
-      break;
-    default:
-      break;
-  }
+    const prefix = config.prefix || 'x';
+
+    if (!text.toLowerCase().startsWith(prefix.toLowerCase())) {
+        return;
+    }
+
+    const input = text.slice(prefix.length).trim();
+
+    if (!input) return;
+
+    const parts = input.split(/\s+/);
+    const commandName = parts.shift().toLowerCase();
+    const args = parts;
+
+    const command = commands[commandName];
+
+    if (!command) return;
+
+    try {
+        await command.execute(sock, m, args, config);
+    } catch (error) {
+        console.error(`Command error [${commandName}]:`, error);
+
+        await sock.sendMessage(from, {
+            text: `❌ Error while executing *${prefix}${commandName}*`
+        });
+    }
 }
 
-module.exports = { handleMessage };
+module.exports = {
+    handleMessage
+};
