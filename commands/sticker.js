@@ -1,3 +1,11 @@
+module.exports = {
+    name: "sticker",
+    aliases: ["s", "stickerwm"],
+    description: "Show the sticker command menu",
+    category: "Sticker",
+
+    async execute(sock, m, args, config) {
+        const text = `
 🌍⃝⃘‌‌‌━⋆─⋆──❂
 ┊ ┊ ┊ ┊ ┊
 ┊ ┊ ✫ ˚㋛ ⋆｡ ❀
@@ -21,3 +29,10 @@
 ┃ 10. x emojimix
 
 > _🎨 Send/reply to media with a sticker command_
+`;
+
+        await sock.sendMessage(m.key.remoteJid, {
+            text
+        });
+    }
+};
