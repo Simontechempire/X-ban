@@ -1,29 +1,41 @@
+const fs = require('fs');
+const path = require('path');
 const config = require('../config');
 
-const commands = {
-    ping: require('../commands/ping'),
-    menu: require('../commands/menu'),
-    owner: require('../commands/owner'),
-    moderator: require('../commands/moderator'),
-    group: require('../commands/group'),
-    admin: require('../commands/admin'),
-    fun: require('../commands/fun'),
-    games: require('../commands/game'),
-    game: require('../commands/game'),
-    media: require('../commands/media'),
-    tools: require('../commands/tools'),
-    utility: require('../commands/utility'),
-    download: require('../commands/downloader'),
-    downloader: require('../commands/downloader'),
-    sticker: require('../commands/sticker'),
-    ai: require('../commands/ai'),
-    info: require('../commands/info'),
-    viewonce: require('../commands/viewonce'),
-    vv: require('../commands/viewonce')
-};
+const commands = {};
+
+// Automatically load commands
+const commandsPath = path.join(__dirname, '../commands');
+
+for (const file of fs.readdirSync(commandsPath)) {
+    if (!file.endsWith('.js')) continue;
+
+    try {
+        const command = require(path.join(commandsPath, file));
+
+        if (!command || !command.name || typeof command.execute !== 'function') {
+            console.warn(`⚠️ Skipping invalid command file: ${file}`);
+            continue;
+        }
+
+        // Main command
+        commands[command.name.toLowerCase()] = command;
+
+        // Aliases
+        if (Array.isArray(command.aliases)) {
+            for (const alias of command.aliases) {
+                commands[alias.toLowerCase()] = command;
+            }
+        }
+
+        console.log(`✅ Loaded command: ${command.name}`);
+    } catch (error) {
+        console.error(`❌ Failed to load ${file}:`, error.message);
+    }
+}
 
 async function handleMessage(sock, { messages }) {
-    const m = messages[0];
+    const m = messages?.[0];
 
     if (!m || !m.message || m.key.fromMe) return;
 
@@ -57,7 +69,10 @@ async function handleMessage(sock, { messages }) {
     try {
         await command.execute(sock, m, args, config);
     } catch (error) {
-        console.error(`Command error [${commandName}]:`, error);
+        console.error(
+            `❌ Command error [${commandName}]:`,
+            error
+        );
 
         await sock.sendMessage(from, {
             text: `❌ Error while executing *${prefix}${commandName}*`
